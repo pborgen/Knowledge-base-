@@ -1,5 +1,6 @@
 import { QdrantClient } from "@qdrant/js-client-rest";
 import { config } from "./config.js";
+import type { SearchFilters } from "./types.js";
 
 export const qdrant = new QdrantClient({ url: config.qdrantUrl });
 
@@ -21,15 +22,45 @@ type Point = {
 
 export async function upsertPoints(points: Point[]): Promise<void> {
   if (!points.length) return;
-  await qdrant.upsert(config.collection, {
-    wait: true,
-    points
+  await qdrant.upsert(config.collection, { wait: true, points });
+}
+
+function filterToQdrant(filters?: SearchFilters) {
+  const must: any[] = [];
+  if (!filters) return undefined;
+
+  if (filters.sourceType) {
+    must.push({ key: "source_type", match: { value: filters.sourceType } });
+  }
+  if (filters.owner) {
+    must.push({ key: "owner", match: { value: filters.owner } });
+  }
+  if (filters.tags?.length) {
+    must.push(...filters.tags.map((t) => ({ key: "tags", match: { value: t } })));
+  }
+
+  return must.length ? { must } : undefined;
+}
+
+export async function searchByVector(vector: number[], limit = 10, filters?: SearchFilters) {
+  return qdrant.search(config.collection, {
+    vector,
+    limit,
+    filter: filterToQdrant(filters),
+    with_payload: true,
+    with_vector: false
   });
 }
 
-export async function searchByVector(vector: number[], limit = 5) {
-  return qdrant.search(config.collection, {
-    vector,
+export async function deleteByDocId(docId: string): Promise<void> {
+  await qdrant.delete(config.collection, {
+    wait: true,
+    filter: { must: [{ key: "doc_id", match: { value: docId } }] }
+  });
+}
+
+export async function scrollAll(limit = 200) {
+  return qdrant.scroll(config.collection, {
     limit,
     with_payload: true,
     with_vector: false

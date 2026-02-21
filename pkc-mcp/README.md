@@ -1,56 +1,52 @@
-# Personal Knowledge Copilot (MCP + RAG)
+# Personal Knowledge Copilot (MCP + RAG + Mobile UI)
 
-MVP MCP server backed by Qdrant vector DB.
-
-## Features
-- Ingest local files into vector store
-- Semantic search
-- Citation-style answer output
-- MCP tools: `ingest_documents`, `search_knowledge`, `answer_with_citations`
+Now includes:
+- MCP server tools (`ingest_documents`, `search_knowledge`, `answer_with_citations`)
+- HTTP API + mobile-friendly web UI (great on iPhone Safari)
+- Google Sign-In + Google Docs ingestion
+- File upload ingestion
+- Metadata filters (`sourceType`, `owner`, `tags`)
+- Hybrid retrieval + reranking (dense + lexical)
+- Document dedupe/update by deterministic `doc_id` and hash
 
 ## Quick start
 
-1. Start Qdrant:
-
 ```bash
+cd /root/.openclaw/workspace/pkc-mcp
 docker compose up -d
-```
-
-2. Install deps:
-
-```bash
-npm install
-```
-
-3. Configure env:
-
-```bash
 cp .env.example .env
-# set OPENAI_API_KEY
+# set OPENAI_API_KEY and GOOGLE_CLIENT_ID
+npm install
+npm run build
 ```
 
-4. Ingest files:
-
-```bash
-npm run ingest -- "../**/*.md"
-```
-
-5. Run MCP server (stdio):
+## Run MCP server
 
 ```bash
 npm run dev
 ```
 
-## MCP client config (example)
-Point your MCP client command to:
+## Run HTTP app + UI
 
 ```bash
-node /absolute/path/to/pkc-mcp/dist/server.js
+npm run dev:http
+# open http://localhost:8787
 ```
 
-(or use tsx in dev)
+## iPhone workflow
+
+1. Open `http://<your-host-ip>:8787` from iPhone on same network
+2. Upload docs directly from Files app (Upload section)
+3. Paste Google Doc URL and tap Sign in
+4. Ask questions in the query box
+
+## API endpoints
+
+- `POST /api/ingest/upload` (multipart `file`)
+- `POST /api/ingest/google-doc` (`idToken`, `accessToken`, `docUrl`)
+- `POST /api/search` (`query`, `topK`, `filters`)
+- `POST /api/answer` (`question`, `topK`, `filters`)
 
 ## Notes
-- Current chunking is character-based (simple, fast for MVP).
-- Supported file types: .md, .txt, .json, .ts, .tsx, .js, .jsx, .py, .go, .java, .swift
-- Next upgrade: hybrid retrieval + reranking + metadata filters.
+- For production, add persistent auth/session storage and HTTPS.
+- PDF text extraction is currently naive (plain text read). Use a parser before production.
