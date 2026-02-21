@@ -3,8 +3,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import fg from "fast-glob";
 import { chunkText } from "./chunk.js";
-import { embedMany } from "./embed.js";
-import { ensureCollection, upsertPoints, deleteByDocId } from "./qdrant.js";
+import { getEmbeddingProvider } from "./embedding-provider.js";
+import { getVectorStore } from "./vector-store.js";
 const SUPPORTED = [".md", ".txt", ".json", ".ts", ".tsx", ".js", ".jsx", ".py", ".go", ".java", ".swift", ".pdf"];
 function hashText(input) {
     return crypto.createHash("sha256").update(input).digest("hex");
@@ -13,10 +13,11 @@ async function upsertDocument(text, metadata) {
     const chunks = chunkText(text);
     if (!chunks.length)
         return 0;
-    const vectors = await embedMany(chunks);
-    await ensureCollection(vectors[0].length);
-    await deleteByDocId(metadata.docId);
-    await upsertPoints(chunks.map((chunk, idx) => ({
+    const vectors = await getEmbeddingProvider().embedMany(chunks);
+    const store = getVectorStore();
+    await store.ensureCollection(vectors[0].length);
+    await store.deleteByDocId(metadata.docId);
+    await store.upsertPoints(chunks.map((chunk, idx) => ({
         id: hashText(`${metadata.docId}:${idx}`),
         vector: vectors[idx],
         payload: {

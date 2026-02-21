@@ -1,3 +1,5 @@
+import "../embed.js";
+import "../qdrant.js";
 import { ingestPaths } from "../ingest.js";
 const inputs = process.argv.slice(2);
 if (!inputs.length) {

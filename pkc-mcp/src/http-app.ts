@@ -1,3 +1,5 @@
+import "./embed.js";
+import "./qdrant.js";
 import path from "node:path";
 import fs from "node:fs/promises";
 import express from "express";

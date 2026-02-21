@@ -1,20 +1,7 @@
 import { QdrantClient } from "@qdrant/js-client-rest";
 import { config } from "./config.js";
+import { setVectorStore } from "./vector-store.js";
 export const qdrant = new QdrantClient({ url: config.qdrantUrl, checkCompatibility: false });
-export async function ensureCollection(vectorSize) {
-    const existing = await qdrant.getCollections();
-    const has = existing.collections.some((c) => c.name === config.collection);
-    if (!has) {
-        await qdrant.createCollection(config.collection, {
-            vectors: { size: vectorSize, distance: "Cosine" }
-        });
-    }
-}
-export async function upsertPoints(points) {
-    if (!points.length)
-        return;
-    await qdrant.upsert(config.collection, { wait: true, points });
-}
 function filterToQdrant(filters) {
     const must = [];
     const should = [];
@@ -35,7 +22,21 @@ function filterToQdrant(filters) {
         return undefined;
     return should.length ? { must, should } : { must };
 }
-export async function searchByVector(vector, limit = 10, filters) {
+async function ensureCollection(vectorSize) {
+    const existing = await qdrant.getCollections();
+    const has = existing.collections.some((c) => c.name === config.collection);
+    if (!has) {
+        await qdrant.createCollection(config.collection, {
+            vectors: { size: vectorSize, distance: "Cosine" }
+        });
+    }
+}
+async function upsertPoints(points) {
+    if (!points.length)
+        return;
+    await qdrant.upsert(config.collection, { wait: true, points });
+}
+async function searchByVector(vector, limit = 10, filters) {
     return qdrant.search(config.collection, {
         vector,
         limit,
@@ -44,16 +45,11 @@ export async function searchByVector(vector, limit = 10, filters) {
         with_vector: false
     });
 }
-export async function deleteByDocId(docId) {
+async function deleteByDocId(docId) {
     await qdrant.delete(config.collection, {
         wait: true,
         filter: { must: [{ key: "doc_id", match: { value: docId } }] }
     });
 }
-export async function scrollAll(limit = 200) {
-    return qdrant.scroll(config.collection, {
-        limit,
-        with_payload: true,
-        with_vector: false
-    });
-}
+setVectorStore({ ensureCollection, upsertPoints, searchByVector, deleteByDocId });
+export { ensureCollection, upsertPoints, searchByVector, deleteByDocId };

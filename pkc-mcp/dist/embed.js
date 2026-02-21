@@ -1,7 +1,8 @@
 import OpenAI from "openai";
 import { config } from "./config.js";
+import { setEmbeddingProvider } from "./embedding-provider.js";
 const client = new OpenAI({ apiKey: config.openaiApiKey || "missing" });
-export async function embedMany(texts) {
+async function embedMany(texts) {
     if (!config.openaiApiKey)
         throw new Error("OPENAI_API_KEY is required for embedding operations");
     if (!texts.length)
@@ -12,7 +13,9 @@ export async function embedMany(texts) {
     });
     return resp.data.map((d) => d.embedding);
 }
-export async function embedOne(text) {
+async function embedOne(text) {
     const [v] = await embedMany([text]);
     return v;
 }
+setEmbeddingProvider({ embedMany, embedOne });
+export { embedMany, embedOne };

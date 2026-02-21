@@ -1,29 +1,9 @@
 import { QdrantClient } from "@qdrant/js-client-rest";
 import { config } from "./config.js";
 import type { SearchFilters } from "./types.js";
+import { setVectorStore } from "./vector-store.js";
 
 export const qdrant = new QdrantClient({ url: config.qdrantUrl, checkCompatibility: false });
-
-export async function ensureCollection(vectorSize: number): Promise<void> {
-  const existing = await qdrant.getCollections();
-  const has = existing.collections.some((c) => c.name === config.collection);
-  if (!has) {
-    await qdrant.createCollection(config.collection, {
-      vectors: { size: vectorSize, distance: "Cosine" }
-    });
-  }
-}
-
-type Point = {
-  id: string;
-  vector: number[];
-  payload: Record<string, unknown>;
-};
-
-export async function upsertPoints(points: Point[]): Promise<void> {
-  if (!points.length) return;
-  await qdrant.upsert(config.collection, { wait: true, points });
-}
 
 function filterToQdrant(filters?: SearchFilters) {
   const must: any[] = [];
@@ -47,7 +27,22 @@ function filterToQdrant(filters?: SearchFilters) {
   return should.length ? { must, should } : { must };
 }
 
-export async function searchByVector(vector: number[], limit = 10, filters?: SearchFilters) {
+async function ensureCollection(vectorSize: number): Promise<void> {
+  const existing = await qdrant.getCollections();
+  const has = existing.collections.some((c) => c.name === config.collection);
+  if (!has) {
+    await qdrant.createCollection(config.collection, {
+      vectors: { size: vectorSize, distance: "Cosine" }
+    });
+  }
+}
+
+async function upsertPoints(points: { id: string; vector: number[]; payload: Record<string, unknown> }[]): Promise<void> {
+  if (!points.length) return;
+  await qdrant.upsert(config.collection, { wait: true, points });
+}
+
+async function searchByVector(vector: number[], limit = 10, filters?: SearchFilters) {
   return qdrant.search(config.collection, {
     vector,
     limit,
@@ -57,17 +52,13 @@ export async function searchByVector(vector: number[], limit = 10, filters?: Sea
   });
 }
 
-export async function deleteByDocId(docId: string): Promise<void> {
+async function deleteByDocId(docId: string): Promise<void> {
   await qdrant.delete(config.collection, {
     wait: true,
     filter: { must: [{ key: "doc_id", match: { value: docId } }] }
   });
 }
 
-export async function scrollAll(limit = 200) {
-  return qdrant.scroll(config.collection, {
-    limit,
-    with_payload: true,
-    with_vector: false
-  });
-}
+setVectorStore({ ensureCollection, upsertPoints, searchByVector, deleteByDocId });
+
+export { ensureCollection, upsertPoints, searchByVector, deleteByDocId };

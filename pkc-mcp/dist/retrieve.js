@@ -1,5 +1,5 @@
-import { embedOne } from "./embed.js";
-import { searchByVector } from "./qdrant.js";
+import { getEmbeddingProvider } from "./embedding-provider.js";
+import { getVectorStore } from "./vector-store.js";
 function lexicalScore(text, query) {
     const q = query.toLowerCase().split(/\s+/).filter(Boolean);
     if (!q.length)
@@ -13,8 +13,8 @@ function lexicalScore(text, query) {
     return hits / q.length;
 }
 export async function retrieve(query, topK = 5, filters) {
-    const vector = await embedOne(query);
-    const denseHits = await searchByVector(vector, Math.max(topK * 4, 20), filters);
+    const vector = await getEmbeddingProvider().embedOne(query);
+    const denseHits = await getVectorStore().searchByVector(vector, Math.max(topK * 4, 20), filters);
     const reranked = denseHits
         .map((h) => {
         const text = h.payload?.text ?? "";
