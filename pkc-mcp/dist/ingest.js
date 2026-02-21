@@ -23,6 +23,9 @@ async function upsertDocument(text, metadata) {
             source: metadata.source,
             source_type: metadata.sourceType ?? "file",
             owner: metadata.owner ?? "local",
+            space_id: metadata.spaceId ?? "default",
+            visibility: metadata.visibility ?? "private",
+            allowed_emails: metadata.allowedEmails ?? [],
             tags: metadata.tags ?? [],
             hash: metadata.hash,
             doc_id: metadata.docId,
@@ -51,9 +54,9 @@ export async function ingestPaths(pathsOrGlobs, owner = "local") {
     }
     return { files: filtered.length, chunks: totalChunks };
 }
-export async function ingestRawText(text, source, owner = "local", sourceType = "text") {
+export async function ingestRawText(text, source, owner = "local", sourceType = "text", spaceId = "default", visibility = "private", allowedEmails = []) {
     const hash = hashText(text);
-    const docId = hashText(`${sourceType}:${source}`);
-    const chunks = await upsertDocument(text, { source, sourceType, owner, hash, docId });
+    const docId = hashText(`${sourceType}:${source}:${spaceId}`);
+    const chunks = await upsertDocument(text, { source, sourceType, owner, hash, docId, spaceId, visibility, allowedEmails });
     return { chunks, docId, hash };
 }

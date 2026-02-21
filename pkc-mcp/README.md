@@ -5,7 +5,9 @@ Now includes:
 - HTTP API + mobile-friendly web UI (great on iPhone Safari)
 - Google Sign-In + Google Docs ingestion
 - File upload ingestion
-- Metadata filters (`sourceType`, `owner`, `tags`)
+- Multi-user knowledge spaces (`private`, `shared`, `public`)
+- Space sharing by email and per-space access controls
+- Metadata filters (`sourceType`, `owner`, `tags`, `spaceId`)
 - Hybrid retrieval + reranking (dense + lexical)
 - Document dedupe/update by deterministic `doc_id` and hash
 

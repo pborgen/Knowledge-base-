@@ -29,14 +29,21 @@ function filterToQdrant(filters?: SearchFilters) {
   const must: any[] = [];
   if (!filters) return undefined;
 
-  if (filters.sourceType) {
-    must.push({ key: "source_type", match: { value: filters.sourceType } });
-  }
-  if (filters.owner) {
-    must.push({ key: "owner", match: { value: filters.owner } });
-  }
-  if (filters.tags?.length) {
-    must.push(...filters.tags.map((t) => ({ key: "tags", match: { value: t } })));
+  if (filters.sourceType) must.push({ key: "source_type", match: { value: filters.sourceType } });
+  if (filters.owner) must.push({ key: "owner", match: { value: filters.owner } });
+  if (filters.spaceId) must.push({ key: "space_id", match: { value: filters.spaceId } });
+  if (filters.tags?.length) must.push(...filters.tags.map((t) => ({ key: "tags", match: { value: t } })));
+
+  if (filters.requesterEmail) {
+    must.push({
+      filter: {
+        should: [
+          { key: "owner", match: { value: filters.requesterEmail } },
+          { key: "visibility", match: { value: "public" } },
+          { key: "allowed_emails", match: { value: filters.requesterEmail } }
+        ]
+      }
+    });
   }
 
   return must.length ? { must } : undefined;
