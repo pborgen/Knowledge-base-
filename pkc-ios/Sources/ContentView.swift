@@ -19,12 +19,47 @@ struct ContentView: View {
                             .background(Color(.secondarySystemBackground))
                             .clipShape(RoundedRectangle(cornerRadius: 10))
 
-                        TextField("Owner email (for metadata)", text: $vm.ownerEmail)
+                        TextField("Owner email", text: $vm.ownerEmail)
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
                             .padding(10)
                             .background(Color(.secondarySystemBackground))
                             .clipShape(RoundedRectangle(cornerRadius: 10))
+
+                        Button("Refresh spaces") { Task { await vm.loadSpaces() } }
+                            .buttonStyle(.bordered)
+
+                        if !vm.spaces.isEmpty {
+                            Picker("Space", selection: $vm.selectedSpaceId) {
+                                ForEach(vm.spaces) { s in
+                                    Text("\(s.name) (\(s.visibility))").tag(s.id)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                        }
+
+                        HStack {
+                            TextField("New space", text: $vm.newSpaceName)
+                            Picker("Visibility", selection: $vm.newSpaceVisibility) {
+                                Text("private").tag("private")
+                                Text("shared").tag("shared")
+                                Text("public").tag("public")
+                            }
+                            .pickerStyle(.menu)
+                        }
+                        Button("Create space") { Task { await vm.createSpace() } }
+                            .buttonStyle(.bordered)
+
+                        TextField("Share with email", text: $vm.shareTargetEmail)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .padding(10)
+                            .background(Color(.secondarySystemBackground))
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                        Button("Share selected space") { Task { await vm.shareSelectedSpace() } }
+                            .buttonStyle(.bordered)
+                        Button("Set selected space visibility") { Task { await vm.setSelectedSpaceVisibility() } }
+                            .buttonStyle(.bordered)
                     }
 
                     card("Add documents") {
@@ -83,6 +118,7 @@ struct ContentView: View {
                 .padding()
             }
             .navigationTitle("Knowledge Base")
+            .task { if vm.spaces.isEmpty { await vm.loadSpaces() } }
             .fileImporter(isPresented: $showPicker, allowedContentTypes: [.data], allowsMultipleSelection: false) { result in
                 switch result {
                 case .success(let urls):

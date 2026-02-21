@@ -6,6 +6,9 @@ Native SwiftUI iPhone app for the Personal Knowledge Copilot backend.
 - Ask the knowledge base (`/api/answer`)
 - Upload files from iPhone Files app (`/api/ingest/upload`)
 - Google Sign-In + Google Doc ingestion (`/api/ingest/google-doc`)
+- Multi-user spaces (load/create/select space)
+- Share selected space by email
+- Toggle selected space visibility (`private/shared/public`)
 
 ## Generate Xcode project
 This app uses **XcodeGen**.
