@@ -1,7 +1,9 @@
 import OpenAI from "openai";
 import { config } from "./config.js";
-const client = new OpenAI({ apiKey: config.openaiApiKey });
+const client = new OpenAI({ apiKey: config.openaiApiKey || "missing" });
 export async function embedMany(texts) {
+    if (!config.openaiApiKey)
+        throw new Error("OPENAI_API_KEY is required for embedding operations");
     if (!texts.length)
         return [];
     const resp = await client.embeddings.create({

@@ -1,6 +1,6 @@
 import { QdrantClient } from "@qdrant/js-client-rest";
 import { config } from "./config.js";
-export const qdrant = new QdrantClient({ url: config.qdrantUrl });
+export const qdrant = new QdrantClient({ url: config.qdrantUrl, checkCompatibility: false });
 export async function ensureCollection(vectorSize) {
     const existing = await qdrant.getCollections();
     const has = existing.collections.some((c) => c.name === config.collection);
@@ -17,6 +17,7 @@ export async function upsertPoints(points) {
 }
 function filterToQdrant(filters) {
     const must = [];
+    const should = [];
     if (!filters)
         return undefined;
     if (filters.sourceType)
@@ -28,17 +29,11 @@ function filterToQdrant(filters) {
     if (filters.tags?.length)
         must.push(...filters.tags.map((t) => ({ key: "tags", match: { value: t } })));
     if (filters.requesterEmail) {
-        must.push({
-            filter: {
-                should: [
-                    { key: "owner", match: { value: filters.requesterEmail } },
-                    { key: "visibility", match: { value: "public" } },
-                    { key: "allowed_emails", match: { value: filters.requesterEmail } }
-                ]
-            }
-        });
+        should.push({ key: "owner", match: { value: filters.requesterEmail } }, { key: "visibility", match: { value: "public" } }, { key: "allowed_emails", match: { value: filters.requesterEmail } });
     }
-    return must.length ? { must } : undefined;
+    if (!must.length && !should.length)
+        return undefined;
+    return should.length ? { must, should } : { must };
 }
 export async function searchByVector(vector, limit = 10, filters) {
     return qdrant.search(config.collection, {

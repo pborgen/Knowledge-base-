@@ -9,7 +9,8 @@
     "dev:http": "tsx src/http.ts",
     "start": "node dist/server.js",
     "start:http": "node dist/http.js",
-    "ingest": "tsx src/cli/ingest.ts"
+    "ingest": "tsx src/cli/ingest.ts",
+    "test:integration": "tsx --test tests/**/*.test.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.17.4",
