@@ -8,40 +8,79 @@ struct ContentView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Backend") {
-                    TextField("http://YOUR-HOST-IP:8787", text: $vm.backendURL)
-                        .keyboardType(.URL)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                }
+            ScrollView {
+                VStack(spacing: 14) {
+                    card("Backend") {
+                        TextField("http://YOUR-HOST-IP:8787", text: $vm.backendURL)
+                            .keyboardType(.URL)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .padding(10)
+                            .background(Color(.secondarySystemBackground))
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
 
-                Section("Add documents") {
-                    Button("Upload file from iPhone") { showPicker = true }
-
-                    TextField("Google Doc URL", text: $googleDocURL)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-
-                    Button("Sign in with Google + Ingest Doc") {
-                        Task { await signInAndIngestGoogleDoc() }
+                        TextField("Owner email (for metadata)", text: $vm.ownerEmail)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .padding(10)
+                            .background(Color(.secondarySystemBackground))
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
                     }
-                }
 
-                Section("Ask") {
-                    TextField("Ask a question", text: $vm.question, axis: .vertical)
-                    Button("Ask knowledge base") {
-                        Task { await vm.ask() }
+                    card("Add documents") {
+                        Button {
+                            showPicker = true
+                        } label: {
+                            Label("Upload file from iPhone", systemImage: "square.and.arrow.up")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+
+                        TextField("Google Doc URL", text: $googleDocURL)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .padding(10)
+                            .background(Color(.secondarySystemBackground))
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+
+                        Button("Sign in with Google + Ingest Doc") {
+                            Task { await signInAndIngestGoogleDoc() }
+                        }
+                        .buttonStyle(.bordered)
+                        .frame(maxWidth: .infinity)
                     }
-                    if !vm.answer.isEmpty {
-                        Text(vm.answer)
+
+                    card("Ask") {
+                        TextField("Ask a question", text: $vm.question, axis: .vertical)
+                            .lineLimit(3...8)
+                            .padding(10)
+                            .background(Color(.secondarySystemBackground))
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+
+                        Button("Ask knowledge base") {
+                            Task { await vm.ask() }
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .frame(maxWidth: .infinity)
+
+                        if !vm.answer.isEmpty {
+                            Text(vm.answer)
+                                .font(.footnote)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(10)
+                                .background(Color(.secondarySystemBackground))
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                        }
+                    }
+
+                    if !vm.status.isEmpty {
+                        Text(vm.status)
                             .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
-
-                if !vm.status.isEmpty {
-                    Section("Status") { Text(vm.status) }
-                }
+                .padding()
             }
             .navigationTitle("Knowledge Base")
             .fileImporter(isPresented: $showPicker, allowedContentTypes: [.data], allowsMultipleSelection: false) { result in
@@ -58,6 +97,17 @@ struct ContentView: View {
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private func card(_ title: String, @ViewBuilder content: () -> some View) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(title).font(.headline)
+            content()
+        }
+        .padding()
+        .background(Color(.tertiarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 
     private func signInAndIngestGoogleDoc() async {

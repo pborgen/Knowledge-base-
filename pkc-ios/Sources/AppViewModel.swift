@@ -3,19 +3,29 @@ import SwiftUI
 
 @MainActor
 final class AppViewModel: ObservableObject {
-    @Published var backendURL: String = "http://YOUR-HOST-IP:8787"
+    @Published var backendURL: String {
+        didSet { UserDefaults.standard.set(backendURL, forKey: "backendURL") }
+    }
     @Published var question: String = ""
     @Published var answer: String = ""
     @Published var status: String = ""
-    @Published var ownerEmail: String = "local"
+    @Published var ownerEmail: String {
+        didSet { UserDefaults.standard.set(ownerEmail, forKey: "ownerEmail") }
+    }
 
     private let api = APIClient()
 
+    init() {
+        self.backendURL = UserDefaults.standard.string(forKey: "backendURL") ?? "http://YOUR-HOST-IP:8787"
+        self.ownerEmail = UserDefaults.standard.string(forKey: "ownerEmail") ?? "local"
+    }
+
     func ask() async {
-        guard !question.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        let trimmed = question.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
         do {
             status = "Querying..."
-            answer = try await api.answer(baseURL: backendURL, question: question)
+            answer = try await api.answer(baseURL: backendURL, question: trimmed)
             status = "Done"
         } catch {
             status = "Error: \(error.localizedDescription)"
