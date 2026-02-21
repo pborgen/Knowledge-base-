@@ -17,6 +17,9 @@ import {
   getSpace,
   canAccessSpace,
   upsertDocumentMeta,
+  listDocumentsForUser,
+  listPublicDocuments,
+  setDocumentVisibility,
   type Visibility
 } from "./store.js";
 
@@ -96,6 +99,23 @@ app.post("/api/ingest/upload", upload.single("file"), async (req: AuthedReq, res
   } catch (e) {
     res.status(500).json({ error: (e as Error).message });
   }
+});
+
+app.get("/api/documents", (req: AuthedReq, res) => {
+  if (!req.userEmail) return res.status(401).json({ error: "Unauthorized" });
+  const spaceId = (req.query.spaceId as string | undefined) || undefined;
+  res.json({ ok: true, documents: listDocumentsForUser(req.userEmail, spaceId) });
+});
+
+app.get("/api/public-library", (_req: AuthedReq, res) => {
+  res.json({ ok: true, documents: listPublicDocuments() });
+});
+
+app.post("/api/documents/:docId/visibility", (req: AuthedReq, res) => {
+  if (!req.userEmail) return res.status(401).json({ error: "Unauthorized" });
+  const { visibility } = req.body as { visibility: Visibility };
+  const doc = setDocumentVisibility(req.params.docId, req.userEmail, visibility);
+  res.json({ ok: true, document: doc });
 });
 
 app.post("/api/ingest/google-doc", async (req: AuthedReq, res) => {

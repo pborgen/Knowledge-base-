@@ -14,11 +14,16 @@ final class AppViewModel: ObservableObject {
     }
     @Published var spaces: [Space] = []
     @Published var selectedSpaceId: String = "" {
-        didSet { UserDefaults.standard.set(selectedSpaceId, forKey: "selectedSpaceId") }
+        didSet {
+            UserDefaults.standard.set(selectedSpaceId, forKey: "selectedSpaceId")
+            Task { await loadDocuments() }
+        }
     }
     @Published var newSpaceName: String = ""
     @Published var newSpaceVisibility: String = "private"
     @Published var shareTargetEmail: String = ""
+    @Published var documents: [DocumentItem] = []
+    @Published var publicDocuments: [DocumentItem] = []
 
     private let api = APIClient()
 
@@ -47,8 +52,37 @@ final class AppViewModel: ObservableObject {
             spaces = fetched
             if selectedSpaceId.isEmpty, let first = fetched.first { selectedSpaceId = first.id }
             status = "Spaces loaded"
+            await loadDocuments()
+            await loadPublicLibrary()
         } catch {
             status = "Spaces error: \(error.localizedDescription)"
+        }
+    }
+
+    func loadDocuments() async {
+        guard !selectedSpaceId.isEmpty else { return }
+        do {
+            documents = try await api.listDocuments(baseURL: backendURL, userEmail: ownerEmail, spaceId: selectedSpaceId)
+        } catch {
+            status = "Documents error: \(error.localizedDescription)"
+        }
+    }
+
+    func loadPublicLibrary() async {
+        do {
+            publicDocuments = try await api.listPublicLibrary(baseURL: backendURL)
+        } catch {
+            status = "Public library error: \(error.localizedDescription)"
+        }
+    }
+
+    func setDocumentVisibility(docId: String, visibility: String) async {
+        do {
+            _ = try await api.setDocumentVisibility(baseURL: backendURL, userEmail: ownerEmail, docId: docId, visibility: visibility)
+            await loadDocuments()
+            await loadPublicLibrary()
+        } catch {
+            status = "Doc visibility error: \(error.localizedDescription)"
         }
     }
 
@@ -96,6 +130,7 @@ final class AppViewModel: ObservableObject {
             status = "Uploading \(url.lastPathComponent)..."
             try await api.uploadFile(baseURL: backendURL, fileURL: url, owner: ownerEmail, spaceId: selectedSpaceId)
             status = "Uploaded + ingested"
+            await loadDocuments()
         } catch {
             status = "Upload error: \(error.localizedDescription)"
         }
@@ -106,6 +141,7 @@ final class AppViewModel: ObservableObject {
             status = "Ingesting Google Doc..."
             try await api.ingestGoogleDoc(baseURL: backendURL, docUrl: docUrl, idToken: idToken, accessToken: accessToken, spaceId: selectedSpaceId)
             status = "Google Doc ingested"
+            await loadDocuments()
         } catch {
             status = "Google ingest error: \(error.localizedDescription)"
         }

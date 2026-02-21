@@ -49,6 +49,35 @@ struct APIClient {
         return try JSONDecoder().decode(Space.self, from: sData)
     }
 
+    func listDocuments(baseURL: String, userEmail: String, spaceId: String) async throws -> [DocumentItem] {
+        var components = URLComponents(string: "\(baseURL)/api/documents")!
+        components.queryItems = [URLQueryItem(name: "spaceId", value: spaceId)]
+        var req = URLRequest(url: components.url!)
+        req.addValue(userEmail, forHTTPHeaderField: "x-user-email")
+        let (data, _) = try await URLSession.shared.data(for: req)
+        let decoded = try JSONDecoder().decode(DocumentsResponse.self, from: data)
+        return decoded.documents
+    }
+
+    func listPublicLibrary(baseURL: String) async throws -> [DocumentItem] {
+        let req = URLRequest(url: URL(string: "\(baseURL)/api/public-library")!)
+        let (data, _) = try await URLSession.shared.data(for: req)
+        let decoded = try JSONDecoder().decode(DocumentsResponse.self, from: data)
+        return decoded.documents
+    }
+
+    func setDocumentVisibility(baseURL: String, userEmail: String, docId: String, visibility: String) async throws {
+        var req = URLRequest(url: URL(string: "\(baseURL)/api/documents/\(docId)/visibility")!)
+        req.httpMethod = "POST"
+        req.allHTTPHeaderFields = headers(userEmail: userEmail)
+        req.httpBody = try JSONSerialization.data(withJSONObject: ["visibility": visibility])
+        let (data, _) = try await URLSession.shared.data(for: req)
+        let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        if (obj?["ok"] as? Bool) != true {
+            throw NSError(domain: "API", code: 1, userInfo: [NSLocalizedDescriptionKey: (obj?["error"] as? String) ?? "Failed"])
+        }
+    }
+
     func answer(baseURL: String, question: String, userEmail: String, spaceId: String) async throws -> String {
         let url = URL(string: "\(baseURL)/api/answer")!
         var req = URLRequest(url: url)

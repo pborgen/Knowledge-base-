@@ -9,6 +9,8 @@ Native SwiftUI iPhone app for the Personal Knowledge Copilot backend.
 - Multi-user spaces (load/create/select space)
 - Share selected space by email
 - Toggle selected space visibility (`private/shared/public`)
+- Per-document visibility toggle (`private/public`)
+- Public Library browse list
 
 ## Generate Xcode project
 This app uses **XcodeGen**.

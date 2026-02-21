@@ -95,3 +95,26 @@ export function upsertDocumentMeta(doc: DocumentMeta) {
   else db.documents.push(doc);
   save(db);
 }
+
+export function listDocumentsForUser(email: string, spaceId?: string): DocumentMeta[] {
+  const db = load();
+  return db.documents.filter((d) => {
+    if (spaceId && d.spaceId !== spaceId) return false;
+    return d.ownerEmail === email || d.visibility === "public" || d.allowedEmails.includes(email);
+  });
+}
+
+export function listPublicDocuments(): DocumentMeta[] {
+  return load().documents.filter((d) => d.visibility === "public");
+}
+
+export function setDocumentVisibility(docId: string, requesterEmail: string, visibility: Visibility): DocumentMeta {
+  const db = load();
+  const doc = db.documents.find((d) => d.docId === docId);
+  if (!doc) throw new Error("Document not found");
+  if (doc.ownerEmail !== requesterEmail) throw new Error("Unauthorized");
+  doc.visibility = visibility;
+  doc.updatedAt = new Date().toISOString();
+  save(db);
+  return doc;
+}

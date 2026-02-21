@@ -85,6 +85,40 @@ struct ContentView: View {
                         .frame(maxWidth: .infinity)
                     }
 
+                    card("Documents in selected space") {
+                        if vm.documents.isEmpty {
+                            Text("No documents yet")
+                                .foregroundStyle(.secondary)
+                        }
+                        ForEach(vm.documents) { doc in
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(doc.source).font(.subheadline).bold()
+                                Text("Visibility: \(doc.visibility)").font(.caption).foregroundStyle(.secondary)
+                                HStack {
+                                    Button("Private") { Task { await vm.setDocumentVisibility(docId: doc.docId, visibility: "private") } }
+                                        .buttonStyle(.bordered)
+                                    Button("Public") { Task { await vm.setDocumentVisibility(docId: doc.docId, visibility: "public") } }
+                                        .buttonStyle(.bordered)
+                                }
+                            }
+                            .padding(8)
+                            .background(Color(.secondarySystemBackground))
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                        }
+                    }
+
+                    card("Public Library") {
+                        if vm.publicDocuments.isEmpty {
+                            Text("No public docs yet")
+                                .foregroundStyle(.secondary)
+                        }
+                        ForEach(vm.publicDocuments.prefix(10)) { doc in
+                            Text("• \(doc.source) — \(doc.ownerEmail)")
+                                .font(.footnote)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+
                     card("Ask") {
                         TextField("Ask a question", text: $vm.question, axis: .vertical)
                             .lineLimit(3...8)
