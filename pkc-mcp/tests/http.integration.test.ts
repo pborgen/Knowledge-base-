@@ -12,6 +12,27 @@ function resetData() {
   fs.writeFileSync(dataPath, JSON.stringify({ users: [], spaces: [], documents: [] }, null, 2));
 }
 
+test("session endpoint requires auth and returns authenticated user", async () => {
+  resetData();
+  const app = createHttpApp();
+  const server = app.listen(0);
+  const port = (server.address() as any).port;
+  const base = `http://127.0.0.1:${port}`;
+
+  try {
+    let res = await fetch(`${base}/api/session`);
+    assert.equal(res.status, 401);
+
+    res = await fetch(`${base}/api/session`, { headers: { "x-user-email": "owner@example.com" } });
+    assert.equal(res.status, 200);
+    const body: any = await res.json();
+    assert.equal(body.authenticated, true);
+    assert.equal(body.email, "owner@example.com");
+  } finally {
+    server.close();
+  }
+});
+
 test("spaces, sharing, and document visibility/public library flows", async () => {
   resetData();
   const app = createHttpApp();

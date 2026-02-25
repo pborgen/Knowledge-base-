@@ -51,6 +51,40 @@ setVectorStore({
 
 test("ingest + answer integration with mocked providers", async () => {
   resetData();
+
+  setEmbeddingProvider({
+    async embedMany(texts: string[]) {
+      return texts.map((t) => [t.length, t.split(" ").length, 1]);
+    },
+    async embedOne(text: string) {
+      return [text.length, text.split(" ").length, 1];
+    }
+  });
+
+  setVectorStore({
+    async ensureCollection() {},
+    async upsertPoints(ps) {
+      points.push(...(ps as P[]));
+    },
+    async deleteByDocId(docId: string) {
+      for (let i = points.length - 1; i >= 0; i--) {
+        if (points[i].payload.doc_id === docId) points.splice(i, 1);
+      }
+    },
+    async searchByVector(_vector, limit = 10, filters) {
+      const filtered = points.filter((p) => {
+        const payload = p.payload as any;
+        if (filters?.spaceId && payload.space_id !== filters.spaceId) return false;
+        if (filters?.requesterEmail) {
+          const allowed = payload.owner === filters.requesterEmail || payload.visibility === "public" || (payload.allowed_emails || []).includes(filters.requesterEmail);
+          if (!allowed) return false;
+        }
+        return true;
+      });
+      return filtered.slice(0, limit).map((p) => ({ score: 0.9, payload: p.payload }));
+    }
+  });
+
   const app = createHttpApp();
   const server = app.listen(0);
   const port = (server.address() as any).port;

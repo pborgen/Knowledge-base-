@@ -44,6 +44,7 @@ npm run dev:http
 
 ## API endpoints
 
+- `GET /api/session` (auth/session check)
 - `POST /api/ingest/upload` (multipart `file`)
 - `POST /api/ingest/google-doc` (`idToken`, `accessToken`, `docUrl`)
 - `POST /api/search` (`query`, `topK`, `filters`)
@@ -51,4 +52,5 @@ npm run dev:http
 
 ## Notes
 - For production, add persistent auth/session storage and HTTPS.
+- Set `ALLOW_DEV_AUTH_HEADERS=false` in production to disable `x-user-email` header auth fallback.
 - PDF text extraction is currently naive (plain text read). Use a parser before production.

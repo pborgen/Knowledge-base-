@@ -8,6 +8,7 @@ import multer from "multer";
 import { retrieve, answerWithCitations } from "./retrieve.js";
 import { ingestRawText } from "./ingest.js";
 import { verifyGoogleIdToken, fetchGoogleDocText, extractGoogleDocId } from "./google.js";
+import { config } from "./config.js";
 import {
   upsertUser,
   ensurePersonalSpace,
@@ -36,15 +37,6 @@ export function createHttpApp() {
 
   async function auth(req: AuthedReq, _res: express.Response, next: express.NextFunction) {
     try {
-      const emailHeader = req.header("x-user-email");
-      if (emailHeader) {
-        req.userEmail = emailHeader;
-        req.userName = emailHeader;
-        upsertUser(emailHeader, emailHeader);
-        ensurePersonalSpace(emailHeader);
-        return next();
-      }
-
       const authz = req.header("authorization") || "";
       if (authz.startsWith("Bearer ")) {
         const idToken = authz.replace("Bearer ", "");
@@ -53,7 +45,20 @@ export function createHttpApp() {
         req.userName = user.name;
         upsertUser(user.email, user.name);
         ensurePersonalSpace(user.email);
+        return next();
       }
+
+      if (config.allowDevAuthHeaders || process.env.NODE_ENV === "test") {
+        const emailHeader = req.header("x-user-email");
+        if (emailHeader) {
+          req.userEmail = emailHeader;
+          req.userName = emailHeader;
+          upsertUser(emailHeader, emailHeader);
+          ensurePersonalSpace(emailHeader);
+          return next();
+        }
+      }
+
       next();
     } catch {
       next();
@@ -62,6 +67,10 @@ export function createHttpApp() {
 
   app.use(auth);
   app.get("/api/health", (_req, res) => res.json({ ok: true }));
+  app.get("/api/session", (req: AuthedReq, res) => {
+    if (!req.userEmail) return res.status(401).json({ ok: false, authenticated: false });
+    return res.json({ ok: true, authenticated: true, email: req.userEmail, name: req.userName ?? req.userEmail });
+  });
   app.get("/api/spaces", (req: AuthedReq, res) => {
     if (!req.userEmail) return res.status(401).json({ error: "Unauthorized" });
     res.json({ ok: true, spaces: listSpacesForUser(req.userEmail) });
